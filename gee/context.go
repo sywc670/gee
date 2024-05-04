@@ -16,6 +16,8 @@ type Context struct {
 	// request
 	Path   string
 	Method string
+	// wild match element
+	Params map[string]string
 }
 
 func newContext(w http.ResponseWriter, r *http.Request) *Context {
@@ -69,4 +71,8 @@ func (c *Context) HTML(code int, html string) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	c.Writer.Write([]byte(html))
+}
+
+func (c *Context) Param(key string) string {
+	return c.Params[key]
 }
