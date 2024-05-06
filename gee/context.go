@@ -18,6 +18,9 @@ type Context struct {
 	Method string
 	// wild match element
 	Params map[string]string
+
+	index    int
+	handlers []HandlerFunc
 }
 
 func newContext(w http.ResponseWriter, r *http.Request) *Context {
@@ -25,7 +28,24 @@ func newContext(w http.ResponseWriter, r *http.Request) *Context {
 		Writer:  w,
 		Request: r,
 		Path:    r.URL.Path,
-		Method:  r.Method}
+		Method:  r.Method,
+		index:   -1,
+	}
+}
+
+func (c *Context) Next() {
+	// 每次调用只会index++一次，如果后续没有中间件，就直接结束，如果后续有中间件，但是没有调用Next()，
+	// 就用到了for循环，如果后续中间件都有Next()，那么就用不上for循环。
+	c.index++
+	l := len(c.handlers)
+	for ; c.index < l; c.index++ {
+		c.handlers[c.index](c)
+	}
+}
+
+func (c *Context) Fail(code int, err string) {
+	c.index = len(c.handlers)
+	c.JSON(code, H{"message": err})
 }
 
 func (c *Context) Query(key string) string {

@@ -3,6 +3,7 @@ package gee
 import (
 	"log"
 	"net/http"
+	"strings"
 )
 
 type Engine struct {
@@ -41,8 +42,17 @@ func (e *Engine) POST(path string, handler HandlerFunc) {
 	e.addRoute("POST", path, handler)
 }
 
+// Actual request process entrance.
+// Called during every request.
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range e.groups {
+		if strings.HasPrefix(r.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	ctx := newContext(w, r)
+	ctx.handlers = middlewares
 	e.router.handle(ctx)
 }
 
@@ -71,4 +81,8 @@ func (rg *RouterGroup) GET(part string, handler HandlerFunc) {
 
 func (rg *RouterGroup) POST(part string, handler HandlerFunc) {
 	rg.addRoute("POST", part, handler)
+}
+
+func (rg *RouterGroup) Use(middlewares ...HandlerFunc) {
+	rg.middlewares = append(rg.middlewares, middlewares...)
 }

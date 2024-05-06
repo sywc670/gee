@@ -77,8 +77,11 @@ func (r *router) handle(c *Context) {
 		c.Params = params
 		// path是实际路径，pattern是匹配路径 eg path:/lang/go pattern:/lang/:name
 		key := c.Method + "-" + n.pattern
-		r.handlers[key](c)
+		c.handlers = append(c.handlers, r.handlers[key])
 	} else {
-		c.String(http.StatusNotFound, "404 Not Found: %s\n", c.Path)
+		c.handlers = append(c.handlers, func(c *Context) {
+			c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		})
 	}
+	c.Next()
 }
