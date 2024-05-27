@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"sync"
+
+	"github.com/sywc670/gee/geecache/singleflight"
 )
 
 type Getter interface {
@@ -22,10 +24,11 @@ var (
 )
 
 type Group struct {
-	mainCache *cache
-	getter    Getter
-	name      string
-	peers     PeerPicker
+	mainCache    *cache
+	getter       Getter
+	name         string
+	peers        PeerPicker
+	singleflight *singleflight.Group
 }
 
 func NewGroup(name string, cacheSize int64, getter Getter) *Group {
@@ -33,9 +36,10 @@ func NewGroup(name string, cacheSize int64, getter Getter) *Group {
 		panic("nil Getter")
 	}
 	g := &Group{
-		name:      name,
-		getter:    getter,
-		mainCache: &cache{cacheBytes: cacheSize},
+		name:         name,
+		getter:       getter,
+		mainCache:    &cache{cacheBytes: cacheSize},
+		singleflight: &singleflight.Group{},
 	}
 	mu.Lock()
 	defer mu.Unlock()
@@ -88,16 +92,20 @@ func (g *Group) RegisterPeers(peers PeerPicker) {
 }
 
 func (g *Group) load(key string) (value ByteView, err error) {
-	if g.peers != nil {
-		if peer, ok := g.peers.PickPeer(key); ok {
-			if value, err = g.getFromPeer(peer, key); err == nil {
-				return value, nil
+	// Use singleflight package to reduce redundant request.
+	view, err := g.singleflight.Do(key, func() (any, error) {
+		if g.peers != nil {
+			if peer, ok := g.peers.PickPeer(key); ok {
+				if value, err = g.getFromPeer(peer, key); err == nil {
+					return value, nil
+				}
+				log.Println("[GeeCache] Failed to get from peer", err)
 			}
-			log.Println("[GeeCache] Failed to get from peer", err)
 		}
-	}
 
-	return g.getLocally(key)
+		return g.getLocally(key)
+	})
+	return view.(ByteView), err
 }
 
 func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
