@@ -1,0 +1,21 @@
+syntax = 'proto3';
+
+package geecachepb;
+
+option go_package = "./geecachepb";
+
+// Define request struct, contains group and key
+message Request {
+  string group = 1;
+  string key = 2;
+}
+
+// Define response struct, consists []byte
+message Response {
+  bytes value = 1;
+}
+
+// rpc interface
+service GroupCache {
+  rpc Get(Request) returns (Response);
+}
