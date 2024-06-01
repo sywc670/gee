@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/sywc670/gee/geecache/consistenthash"
+	"github.com/sywc670/gee/geecache/geecachepb"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -60,8 +62,12 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	bytes, err := proto.Marshal(&geecachepb.Response{Value: value.ByteSlice()})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(value.ByteSlice())
+	w.Write(bytes)
 }
 
 // Set updates the pool's list of peers.

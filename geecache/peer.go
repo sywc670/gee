@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/sywc670/gee/geecache/geecachepb"
 )
 
@@ -17,47 +17,18 @@ type PeerPicker interface {
 }
 
 // PeerGetter is the interface that must be implemented by a peer.
-type PeerGetter interface {
-	Get(group string, key string) ([]byte, error)
-}
 
-type PBPeerGetter interface {
-	PBGet(in *geecachepb.Request, out *geecachepb.Response) error
+type PeerGetter interface {
+	Get(in *geecachepb.Request, out *geecachepb.Response) error
 }
 
 type httpGetter struct {
 	baseURL string
 }
 
-func (h *httpGetter) Get(group string, key string) ([]byte, error) {
-	u := fmt.Sprintf(
-		"%v%v/%v",
-		h.baseURL,
-		url.QueryEscape(group),
-		url.QueryEscape(key),
-	)
-	res, err := http.Get(u)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server returned: %v", res.Status)
-	}
-
-	bytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response body: %v", err)
-	}
-
-	return bytes, nil
-}
-
 var _ PeerGetter = (*httpGetter)(nil)
-var _ PBPeerGetter = (*httpGetter)(nil)
 
-func (h *httpGetter) PBGet(in *geecachepb.Request, out *geecachepb.Response) error {
+func (h *httpGetter) Get(in *geecachepb.Request, out *geecachepb.Response) error {
 	u := fmt.Sprintf(
 		"%v%v/%v",
 		h.baseURL,
