@@ -3,12 +3,14 @@ package geeorm
 import (
 	"database/sql"
 
+	"github.com/sywc670/gee/geeorm/dialect"
 	"github.com/sywc670/gee/geeorm/log"
 	"github.com/sywc670/gee/geeorm/session"
 )
 
 type Engine struct {
-	db *sql.DB
+	db      *sql.DB
+	dialect dialect.Dialect
 }
 
 func NewEngine(driver, source string) (e *Engine, err error) {
@@ -35,5 +37,5 @@ func (engine *Engine) Close() {
 }
 
 func (engine *Engine) NewSession() *session.Session {
-	return session.New(engine.db)
+	return session.New(engine.db, engine.dialect)
 }

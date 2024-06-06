@@ -4,17 +4,21 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/sywc670/gee/geeorm/dialect"
 	"github.com/sywc670/gee/geeorm/log"
+	"github.com/sywc670/gee/geeorm/schema"
 )
 
 type Session struct {
-	sql     strings.Builder
-	sqlvars []any
-	db      *sql.DB
+	dialect  dialect.Dialect
+	refTable *schema.Schema
+	sql      strings.Builder
+	sqlvars  []any
+	db       *sql.DB
 }
 
-func New(db *sql.DB) *Session {
-	return &Session{db: db}
+func New(db *sql.DB, dialect dialect.Dialect) *Session {
+	return &Session{db: db, dialect: dialect}
 }
 
 func (s *Session) DB() *sql.DB {
