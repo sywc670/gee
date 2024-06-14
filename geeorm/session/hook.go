@@ -19,6 +19,7 @@ const (
 )
 
 // CallMethod calls the registered hooks
+// 没有实际埋入
 func (s *Session) CallMethod(method string, value interface{}) {
 	fm := reflect.ValueOf(s.RefTable().Model).MethodByName(method)
 	if value != nil {
